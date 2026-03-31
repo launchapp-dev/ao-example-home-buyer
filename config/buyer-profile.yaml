@@ -1,0 +1,117 @@
+# Buyer Profile — Sarah & James Mitchell
+# Edit this file to customize the pipeline for your situation
+
+buyers:
+  primary:
+    name: Sarah Mitchell
+    age: 34
+    credit_score: 748
+  co_borrower:
+    name: James Mitchell
+    age: 36
+    credit_score: 721
+
+finances:
+  combined_annual_income: 165000
+  primary_income: 95000       # Sarah (software engineer)
+  co_borrower_income: 70000   # James (marketing manager)
+  income_type: W2             # W2 | self-employed | 1099
+
+  # Monthly debt obligations (exclude rent — not counted in DTI)
+  monthly_debts:
+    - type: student_loans
+      description: "Sarah's student loans"
+      monthly_payment: 285
+      remaining_balance: 34000
+    - type: auto_loan
+      description: "James's car"
+      monthly_payment: 450
+      remaining_balance: 18500
+
+  # Savings available for home purchase
+  savings:
+    total_liquid: 72000
+    checking: 8000
+    savings_account: 40000
+    investment_account: 24000    # Can liquidate if needed, but prefer not to
+    gift_funds_available: 0
+
+  # Current housing
+  current_rent: 2400
+
+  # VA eligibility (affects loan options)
+  va_eligible: false
+  va_service_branch: null
+
+location:
+  # Target metro area
+  metro: "Austin, TX"
+
+  # Primary workplace for commute calculations
+  workplace:
+    address: "Downtown Austin, TX (6th & Congress)"
+    max_acceptable_commute_minutes: 35
+
+  # Preferred neighborhoods (in priority order)
+  target_neighborhoods:
+    - name: "Round Rock"
+      zip_codes: ["78664", "78681", "78665"]
+      notes: "Good schools, more space for the price"
+    - name: "Cedar Park"
+      zip_codes: ["78613", "78613"]
+      notes: "Leander ISD, newer developments"
+    - name: "Pflugerville"
+      zip_codes: ["78660"]
+      notes: "More affordable, growing area"
+    - name: "South Austin"
+      zip_codes: ["78745", "78748", "78749"]
+      notes: "Shorter commute, walkable, higher prices"
+
+  # Would consider if above don't pan out
+  backup_neighborhoods:
+    - "Manor"
+    - "Buda"
+    - "Kyle"
+
+  # Hard no — will not consider
+  excluded_areas:
+    - "Bastrop" # Too far from work
+    - "Georgetown" # Outside school district preference
+
+lifestyle:
+  # School priorities
+  school_priority: high   # high | medium | low
+  school_ratings_minimum: 7   # GreatSchools rating minimum (out of 10)
+  school_districts_preferred:
+    - "Round Rock ISD"
+    - "Leander ISD"
+    - "Austin ISD" # South Austin schools
+
+  # Commute preferences
+  commute_mode: drive     # drive | transit | bike | mixed
+  wfh_days_per_week: 2    # Reduces commute impact
+
+  # Kids / planning
+  children_planned: true
+  current_children: 0
+
+  deal_breakers:
+    - "FEMA designated flood zone (Zone A or AE)"
+    - "Foundation issues (significant cracking or settling)"
+    - "HOA fees exceeding $300/month"
+    - "Active mold or significant water intrusion"
+    - "Knob-and-tube wiring throughout"
+    - "Buried oil or fuel storage tank on property"
+
+  nice_to_haves:
+    - "2-car garage"
+    - "Large backyard (6,000+ sq ft lot)"
+    - "Updated kitchen (last 10 years)"
+    - "Home office or bonus room"
+    - "Pool or pool-ready yard"
+    - "Single story"
+    - "Solar panels installed"
+
+# First-time buyer status
+first_time_buyer: true
+previously_owned: false

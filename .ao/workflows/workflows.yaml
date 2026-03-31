@@ -1,0 +1,52 @@
+default_workflow_ref: home-buying-pipeline
+
+workflows:
+  - id: home-buying-pipeline
+    name: "Home Buying Pipeline"
+    description: "Full home purchase workflow from financial assessment through closing preparation"
+    phases:
+      - assess-finances
+      - prepare-mortgage
+      - research-neighborhoods
+      - evaluate-listings:
+          on_verdict:
+            pass:
+              target: research-neighborhoods
+          max_rework_attempts: 3
+      - draft-offer:
+          on_verdict:
+            revise:
+              target: draft-offer
+      - review-offer:
+          on_verdict:
+            revise:
+              target: draft-offer
+            withdraw:
+              target: research-neighborhoods
+          max_rework_attempts: 2
+      - coordinate-inspection:
+          on_verdict:
+            negotiate:
+              target: negotiate-repairs
+            walk-away:
+              target: research-neighborhoods
+          max_rework_attempts: 2
+      - negotiate-repairs:
+          on_verdict:
+            walk-away:
+              target: research-neighborhoods
+      - prepare-closing
+      - generate-closing-report
+    post_success:
+      merge:
+        strategy: squash
+        target_branch: main
+        create_pr: true
+        auto_merge: true
+        cleanup_worktree: true
+
+  - id: listing-monitor
+    name: "Daily Listing Monitor"
+    description: "Scheduled daily scan for new listings matching buyer criteria"
+    phases:
+      - daily-listing-alert

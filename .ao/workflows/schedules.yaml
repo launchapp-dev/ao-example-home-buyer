@@ -1,0 +1,6 @@
+schedules:
+  - id: daily-listing-alert
+    cron: "0 8 * * 1-5"
+    workflow_ref: listing-monitor
+    enabled: true
+    description: "Weekday morning scan for new listings matching buyer criteria"

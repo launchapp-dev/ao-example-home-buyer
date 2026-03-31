@@ -1,0 +1,369 @@
+phases:
+  assess-finances:
+    mode: agent
+    agent: financial-advisor
+    directive: |
+      Read config/buyer-profile.yaml to understand the buyer's complete financial situation.
+
+      Perform a full financial readiness assessment:
+      1. Calculate front-end DTI (housing costs / gross income) and back-end DTI (all debts / gross income).
+         Flag if either exceeds the safe thresholds (28% front-end, 43% back-end).
+      2. Determine the affordable purchase price range with three scenarios:
+         - Conservative: 20% down, no PMI, 28% front-end DTI cap
+         - Realistic: 10% down, with PMI, 30% front-end DTI cap
+         - Stretch: 5% down, with PMI, 33% front-end DTI cap (show true cost)
+      3. Validate savings adequacy for each scenario (down payment + closing costs 3% + 3-month reserve).
+      4. Assess credit score impact on rate tiers: estimate monthly payments at each scenario.
+      5. Identify any red flags or financial risks that could affect approval.
+
+      Write the structured assessment to data/financial-assessment.json with this structure:
+      {
+        "buyer": "...",
+        "assessment_date": "...",
+        "gross_monthly_income": ...,
+        "monthly_debts": [...],
+        "total_monthly_debt": ...,
+        "dti_ratios": { "front_end": ..., "back_end": ... },
+        "credit_score": { "primary": ..., "co_borrower": ... },
+        "savings_available": ...,
+        "scenarios": [
+          {
+            "name": "conservative",
+            "down_payment_pct": 20,
+            "max_purchase_price": ...,
+            "monthly_payment_est": ...,
+            "savings_required": ...,
+            "savings_sufficient": true|false
+          }
+        ],
+        "red_flags": [...],
+        "recommendation": "..."
+      }
+
+      Also write reports/financial-readiness.md — a clear, plain-English report the buyers can read.
+      Make it encouraging but honest. Include concrete next steps.
+    capabilities:
+      mutates_state: true
+      writes_files: true
+
+  prepare-mortgage:
+    mode: agent
+    agent: mortgage-specialist
+    directive: |
+      Read data/financial-assessment.json to understand the buyer's approved financial profile.
+      Read config/buyer-profile.yaml for VA/USDA eligibility details.
+
+      Prepare a comprehensive mortgage pre-approval package:
+      1. Compare all applicable loan types: Conventional, FHA, VA (if eligible), USDA (if area qualifies).
+         For each, show: minimum down payment, current rate estimate, monthly payment, PMI cost,
+         mortgage insurance duration, total 5-year cost, total 10-year cost.
+      2. Calculate the PMI breakeven point for 10% vs 20% down: at what point does the extra
+         saved on PMI justify the larger down payment?
+      3. Build a required documents checklist organized by category (income, assets, employment, credit).
+         Note which items the buyer needs to gather and which the lender pulls directly.
+      4. Provide a lender evaluation guide: what to compare (APR vs rate, origination fees, points),
+         the 14-day rate-lock shopping window (single credit inquiry), how to read a Loan Estimate.
+
+      Write to data/mortgage-package.json and reports/mortgage-guide.md.
+      Be specific with numbers — use realistic current market estimates for a 720-750 credit score buyer.
+    capabilities:
+      mutates_state: true
+      writes_files: true
+
+  research-neighborhoods:
+    mode: agent
+    agent: neighborhood-researcher
+    directive: |
+      Read config/search-criteria.yaml to understand which neighborhoods and areas to research.
+      Read config/buyer-profile.yaml for commute destination and lifestyle priorities.
+
+      For each target neighborhood or ZIP code in the search criteria:
+      1. Research school ratings — fetch data from public sources. Austin ISD and other district
+         websites, Niche.com neighborhood pages, or GreatSchools ratings.
+      2. Research crime statistics — Austin Police Department crime data or neighborhood safety sites.
+      3. Calculate commute time to the buyer's workplace from the center of each neighborhood
+         (both driving and public transit if available).
+      4. Research walkability, nearby amenities, parks, and grocery stores.
+      5. Research current market conditions: median list price, median sold price, price per sq ft,
+         typical days on market, months of inventory.
+      6. Look up property tax rates for Travis County and any applicable MUD districts.
+      7. Note any HOA communities and typical fee ranges.
+
+      Save each neighborhood report to data/neighborhood-reports/<neighborhood-slug>.json.
+      Compile the comparison matrix to data/neighborhood-comparison.json.
+      Generate reports/neighborhood-guide.md with a clear ranked recommendation (1st, 2nd, 3rd choice)
+      based on how well each neighborhood matches the buyer's priorities.
+
+      Target: research at least 3 neighborhoods from the search criteria list.
+    capabilities:
+      mutates_state: true
+      writes_files: true
+
+  evaluate-listings:
+    mode: agent
+    agent: buyer-agent
+    directive: |
+      Read data/neighborhood-comparison.json for the recommended neighborhoods.
+      Read config/search-criteria.yaml for all evaluation criteria.
+      Read config/buyer-profile.yaml for must-haves, nice-to-haves, and deal-breakers.
+      Read data/financial-assessment.json for the maximum purchase price.
+
+      Evaluate current listings and recommend an offer strategy:
+
+      1. Identify 3-5 listings in the recommended neighborhoods within the buyer's price range.
+         Use the fetch MCP to research listings on Zillow, Redfin, or Realtor.com — search for
+         "homes for sale [neighborhood] Austin TX [price range]" and analyze what you find.
+
+      2. For each listing, score against the buyer's criteria:
+         - Must-haves: pass/fail (any fail = reject)
+         - Nice-to-haves: score 0-10 each
+         - Deal-breakers: instant reject if triggered
+         - Calculate price per sq ft and compare to neighborhood median
+
+      3. Research comps for the top-scoring listing: recent sold prices for similar homes within
+         0.5 miles in the past 90 days. Assess if the listing is priced fairly.
+
+      4. Recommend an offer strategy for the best listing:
+         - "aggressive": list is priced right, hot market, expect competition
+         - "market": fair price, normal conditions, standard terms
+         - "conservative": overpriced or soft market, room to negotiate
+         - "pass": no suitable listings found, need to search more areas
+
+      Write analysis to data/listing-analysis.json. If strategy is anything other than "pass",
+      also write initial offer parameters to data/offer-terms.json.
+    capabilities:
+      mutates_state: true
+      writes_files: true
+    decision_contract:
+      required_fields: [verdict, reasoning, strategy]
+      valid_verdicts: [aggressive, market, conservative, pass]
+
+  draft-offer:
+    mode: agent
+    agent: buyer-agent
+    directive: |
+      Read data/listing-analysis.json for the selected listing details.
+      Read data/offer-terms.json for the initial offer parameters.
+      Read data/financial-assessment.json for the buyer's pre-approval limit.
+      Read data/mortgage-package.json for financing details.
+      Read config/buyer-profile.yaml for buyer preferences on contingencies and timeline.
+
+      Draft a complete, ready-to-submit offer package:
+
+      1. Offer price: based on strategy (aggressive = at or above ask, market = at ask,
+         conservative = 2-5% below ask). Must not exceed pre-approval maximum.
+      2. Earnest money deposit: typically 1% (conservative) to 3% (aggressive) of offer price.
+         Specify when it must be deposited (within 3 business days of acceptance).
+      3. Financing contingency: spell out loan type, amount, interest rate threshold.
+         Specify the financing contingency deadline (typically 21 days).
+      4. Inspection contingency: specify the inspection period (7-10 days) and the buyer's
+         rights during the period.
+      5. Appraisal contingency: if price exceeds appraisal, buyer's options. Consider waiving
+         only if buyer has cash to cover gap (check financial-assessment).
+      6. Closing date: target 30-45 days from acceptance. Confirm with mortgage timeline.
+      7. Personal property: list any items to be included (appliances, fixtures, etc.)
+      8. If aggressive strategy: include escalation clause (e.g., escalate $1K above competing
+         offers up to a maximum of $X).
+      9. Seller credits: if conservative, request credits for closing costs.
+      10. Timeline summary: key dates from acceptance to closing.
+
+      Update data/offer-terms.json with the complete, finalized offer.
+      Generate reports/offer-summary.md — a clear, readable offer summary for the buyer
+      to review before deciding whether to submit.
+    capabilities:
+      mutates_state: true
+      writes_files: true
+
+  review-offer:
+    mode: manual
+    directive: |
+      ## Buyer Offer Review
+
+      The offer has been drafted and is ready for your review.
+
+      Please read: reports/offer-summary.md
+
+      This shows:
+      - The property details and why we recommend it
+      - The complete offer terms (price, earnest money, contingencies, closing date)
+      - An escalation clause analysis if applicable
+      - The risks and tradeoffs of this offer
+
+      **Your decision:**
+      - "submit" — Proceed with submitting this offer as written
+      - "revise" — You want changes to the offer terms (describe what in the reason field)
+      - "withdraw" — Do not submit this offer; look for a different property
+    decision_contract:
+      required_fields: [verdict, reasoning]
+      valid_verdicts: [submit, revise, withdraw]
+
+  coordinate-inspection:
+    mode: agent
+    agent: inspection-coordinator
+    directive: |
+      The offer has been accepted. Now coordinate the home inspection process.
+
+      Read data/offer-terms.json to confirm the inspection contingency period (typically 7-10 days).
+      Read config/buyer-profile.yaml for any specific concerns the buyer flagged.
+
+      Step 1: Generate the pre-inspection checklist and write it to data/inspection-checklist.json.
+      This will be used to brief the inspector and ensure full coverage.
+
+      Step 2: The inspection has been completed. Read the inspection report from
+      data/inspection-report-raw.md (this file will be provided by the buyer after inspection).
+      If the file does not exist yet, CREATE a realistic sample inspection report for a
+      10-year-old Austin home worth ~$440K. Include a mix of cosmetic items, negotiable items
+      (aging HVAC, roof at 12 years, one GFCI outlet needed), and no deal-breakers.
+
+      Step 3: Categorize every finding:
+      - deal-breaker: structural, major water damage, mold, foundation failure, active pest infestation
+      - negotiate: items that affect value or safety but can be repaired/credited
+      - cosmetic: minor, buyer's responsibility, doesn't affect safety or value significantly
+
+      Step 4: Estimate repair costs for all "negotiate" items. Use realistic Austin contractor rates.
+
+      Step 5: Calculate total estimated repair cost. Determine your verdict:
+      - Total repairs < 1.5% of purchase price → "proceed" (minor issues, not worth negotiating)
+      - Total repairs 1.5-5% → "negotiate" (request specific repairs or seller credit)
+      - Any deal-breakers OR total > 5% → "walk-away"
+
+      Write full report to data/inspection-report.json.
+      Write repair estimates to data/repair-estimates.json.
+      Generate reports/inspection-summary.md for the buyer.
+    capabilities:
+      mutates_state: true
+      writes_files: true
+    decision_contract:
+      required_fields: [verdict, reasoning, total_repair_estimate, deal_breakers_found]
+      valid_verdicts: [proceed, negotiate, walk-away]
+
+  negotiate-repairs:
+    mode: agent
+    agent: buyer-agent
+    directive: |
+      The inspection revealed negotiable items. Draft a repair request / credit request
+      to send to the seller.
+
+      Read data/inspection-report.json for all categorized findings.
+      Read data/repair-estimates.json for cost estimates.
+      Read data/offer-terms.json for the original offer price.
+
+      Strategy for repair negotiations:
+      1. Focus on the "negotiate" items only — do NOT include cosmetic items in the request.
+         Cosmetic items are buyer's responsibility and including them weakens your position.
+      2. Prefer requesting a SELLER CREDIT over asking for repairs. Why: you don't know if the
+         seller will hire quality contractors, and credit lets you control the repair.
+      3. Calculate the total credit to request: sum of repair estimates × 1.15 (20% buffer for
+         actual contractor variation).
+      4. Alternatively, if the item is safety-critical (e.g., electrical), request repair with
+         a licensed contractor before closing, with documentation.
+      5. Prepare for the seller to counter: what is the minimum you'd accept?
+         - Minimum credit = 70% of total estimate (you cover 30% yourself)
+         - Or: seller completes the top 2 most expensive repairs
+
+      Write the repair negotiation terms to data/repair-negotiation.json.
+      Generate a clear negotiation request letter in reports/repair-request.md — professional
+      tone, specific items and amounts, deadline for response (48-72 hours typical).
+
+      After completing, return verdict "proceed" to move to closing preparation.
+    capabilities:
+      mutates_state: true
+      writes_files: true
+    decision_contract:
+      required_fields: [verdict, reasoning]
+      valid_verdicts: [proceed, walk-away]
+
+  prepare-closing:
+    mode: agent
+    agent: closing-specialist
+    directive: |
+      The inspection is resolved (either no issues requiring negotiation, or repair credits agreed).
+      Now prepare the buyer for closing.
+
+      Read data/offer-terms.json for purchase price and closing date.
+      Read data/mortgage-package.json for loan details.
+      Read data/repair-negotiation.json if it exists (for seller credits to track).
+      Read config/buyer-profile.yaml for the buyer's situation.
+
+      Prepare the complete closing package:
+
+      1. Calculate the closing cost breakdown (itemized) for the specific purchase price.
+         Include estimates from both lender side and third-party/title side.
+         Calculate "cash to close" = down payment + closing costs - any seller credits.
+
+      2. Build the closing timeline from today to the closing date in offer-terms.json.
+         Mark off each milestone: loan application, home appraisal order/completion, underwriting,
+         Clear to Close, Closing Disclosure (must be received 3 business days before closing),
+         final walkthrough, closing day.
+
+      3. Generate the required documents checklist for closing day.
+
+      4. Generate the final walkthrough checklist (verify all agreed items completed).
+
+      5. Generate the move-in checklist: utility transfers, change of address, locks, insurance,
+         mail forwarding, schools (if applicable), HOA contact, security system.
+
+      6. Flag any remaining action items with deadlines (e.g., "Buy homeowner's insurance by Day 5").
+
+      Write to data/closing-checklist.json and data/closing-costs.json.
+      Generate reports/closing-guide.md — the buyer's complete closing roadmap.
+    capabilities:
+      mutates_state: true
+      writes_files: true
+
+  generate-closing-report:
+    mode: agent
+    agent: closing-specialist
+    directive: |
+      Generate the final summary report for the home purchase.
+
+      Read all data files and all reports to compile a complete transaction summary:
+      - data/financial-assessment.json
+      - data/mortgage-package.json
+      - data/neighborhood-comparison.json
+      - data/listing-analysis.json
+      - data/offer-terms.json
+      - data/inspection-report.json (if exists)
+      - data/repair-negotiation.json (if exists)
+      - data/closing-costs.json
+
+      Create reports/purchase-summary.md — the buyer's complete transaction record:
+
+      1. **Executive Summary** — Property address, purchase price, closing date, loan details,
+         total cash brought to closing, monthly payment breakdown (P&I, taxes, insurance, PMI if any).
+      2. **Financial Highlights** — How the purchase compares to the original financial assessment.
+         Are they within budget? What's the actual DTI with this loan?
+      3. **Neighborhood Selection** — Why this neighborhood was chosen over alternatives.
+      4. **Deal Highlights** — Any credits received, offer strategy used, days under contract.
+      5. **Move-In Action Plan** — The first 30 days after closing: immediate tasks (utilities,
+         locks, insurance) and first-week tasks (change address, meet neighbors, etc.)
+      6. **Congratulations** — Personalize to the buyer's name. This is a big deal.
+
+      This is the final deliverable. Make it clean, complete, and something the buyer will want to keep.
+    capabilities:
+      mutates_state: true
+      writes_files: true
+
+  daily-listing-alert:
+    mode: agent
+    agent: neighborhood-researcher
+    directive: |
+      This is the daily new listing alert scan. Check for new listings that match the buyer's criteria.
+
+      Read config/search-criteria.yaml for current search criteria.
+      Read data/financial-assessment.json for the maximum purchase price.
+      Read data/neighborhood-comparison.json to know which neighborhoods are top choices.
+
+      Use the fetch MCP to search for new listings posted in the last 24 hours in the target
+      neighborhoods. Look for listings that:
+      - Fall within the buyer's price range
+      - Have the minimum number of bedrooms and bathrooms required
+      - Are in the preferred neighborhoods (prioritize top-ranked)
+
+      Write any new matches to data/new-listings-alert.json with today's date.
+      If no new matches: write a brief status update noting that no new matches were found today.
+
+      This phase runs on a schedule — keep it fast and focused.
+    capabilities:
+      mutates_state: true
+      writes_files: true

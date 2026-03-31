@@ -1,0 +1,93 @@
+# Property Search Criteria — Sarah & James Mitchell
+# These criteria are used by the buyer-agent to score and filter listings.
+
+price:
+  minimum: 350000
+  maximum: 480000
+  target: 430000        # Sweet spot
+  absolute_ceiling: 500000   # Will not exceed even with escalation
+
+property:
+  type: single-family     # single-family | townhouse | condo
+  # Will consider townhouse only if HOA < $200/month and large sq ft
+  condo_acceptable: false
+
+  bedrooms:
+    minimum: 3
+    preferred: 4
+  bathrooms:
+    minimum: 2.0
+    preferred: 2.5
+
+  square_feet:
+    minimum: 1600
+    preferred: 2000
+    maximum: 3200    # Don't want to heat/cool more than we need
+
+  lot_size_sqft:
+    minimum: 5000
+    preferred: 7500
+
+  year_built:
+    minimum: 1990   # Avoid older electrical/plumbing issues
+    # No maximum — newer is fine
+    preferred_decade: "2000s-2010s"
+
+  garage:
+    required: false       # Not a hard requirement
+    preferred: true
+    preferred_type: attached
+    minimum_spaces: 1
+
+  stories:
+    preference: either    # single | two-story | either
+
+  # Features
+  required_features: []   # Nothing absolutely required beyond bedrooms/baths
+
+  preferred_features:
+    - "Updated kitchen"
+    - "Open floor plan"
+    - "Master suite with ensuite bath"
+    - "Covered patio or deck"
+    - "Laundry room (not closet)"
+
+  automatic_disqualifiers:
+    - "Listed as manufactured or mobile home"
+    - "Active short sale or REO requiring extended timeline"
+    - "Age-restricted community"
+
+condition:
+  # Buyer is willing to do light cosmetic work but not major renovations
+  acceptable: ["move-in ready", "light cosmetic updates needed"]
+  not_acceptable: ["needs major renovation", "major foundation work", "new roof needed immediately"]
+  fixer_upper_acceptable: false
+
+financing:
+  down_payment_target_pct: 10    # Targeting 10% to preserve cash
+  down_payment_minimum_pct: 5    # Absolute minimum to stay FHA-eligible
+  loan_type_preference: conventional   # conventional | fha | va | usda | any
+  max_dti_comfort: 0.38          # Back-end DTI buyer is comfortable with
+
+contingencies:
+  financing: true
+  inspection: true
+  appraisal: true
+  home_sale: false    # Not contingent on selling another home (renters)
+
+timeline:
+  # Flexibility on move-in date
+  target_move_in: "2026-06-01"
+  earliest_move_in: "2026-05-01"
+  latest_move_in: "2026-08-01"
+  lease_end: "2026-05-31"    # Current lease expires — creates some urgency
+
+# Scoring weights used by buyer-agent (must sum to 100)
+scoring_weights:
+  price_fit: 25
+  school_rating: 20
+  commute_time: 15
+  bedrooms_bathrooms: 15
+  lot_and_outdoor: 10
+  condition_and_age: 10
+  neighborhood_feel: 5
